@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14102b">
+<title>Three Stages</title>
+<style>
+  :root { --ink:#fff; --deep:#14102b; }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; overflow:hidden; background:var(--deep); font-family:"Trebuchet MS", "Segoe UI", system-ui, sans-serif; color:var(--ink); }
+
+  .screen {
+    position:fixed; inset:0; height:100dvh;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:24px; padding-bottom:calc(24px + env(safe-area-inset-bottom));
+    text-align:center;
+    visibility:hidden; clip-path:circle(0% at 50% 85%);
+    transition:clip-path .9s cubic-bezier(.77,0,.18,1), visibility 0s .9s;
+    z-index:1;
+  }
+  .screen.active { visibility:visible; clip-path:circle(150% at 50% 85%); transition:clip-path .9s cubic-bezier(.77,0,.18,1), visibility 0s; z-index:3; }
+  .screen.leaving { visibility:visible; z-index:2; }
+
+  #s1 { background:radial-gradient(circle at 30% 20%, #ff9a8b 0%, #ff6a88 45%, #8e44ad 100%); }
+  #s2 { background:radial-gradient(circle at 70% 25%, #1fd1f9 0%, #3a47d5 50%, #0b0f3a 100%); }
+  #s3 { background:linear-gradient(180deg,#8fd3ff 0%,#d6f0ff 55%,#fff6e0 100%); color:#24304a; }
+
+  h1 { font-size:clamp(3rem, 17vw, 5.5rem); letter-spacing:-.02em; line-height:1; text-shadow:0 6px 30px rgba(0,0,0,.25); }
+  .screen.active h1 { animation:pop 1s .45s both cubic-bezier(.2,1.4,.4,1); }
+  @keyframes pop { from { opacity:0; transform:scale(.4) translateY(40px) rotate(-6deg); } to { opacity:1; transform:none; } }
+
+  .sub { margin-top:14px; font-size:1.05rem; opacity:.9; }
+  .screen.active .sub { animation:fade .8s 1s both; }
+  @keyframes fade { from { opacity:0; transform:translateY(10px); } to { opacity:.9; transform:none; } }
+
+  .btn {
+    position:absolute; left:50%; bottom:calc(36px + env(safe-area-inset-bottom)); transform:translateX(-50%);
+    border:0; border-radius:999px; padding:16px 38px; min-width:170px;
+    font:inherit; font-size:1.1rem; font-weight:700; color:#2b1b4d; background:#fff;
+    box-shadow:0 10px 30px rgba(0,0,0,.3); cursor:pointer;
+    transition:transform .15s, box-shadow .15s;
+  }
+  .btn:active { transform:translateX(-50%) scale(.94); box-shadow:0 4px 12px rgba(0,0,0,.3); }
+  .screen.active .btn { animation:rise .8s 1.2s both; }
+  @keyframes rise { from { opacity:0; bottom:-60px; } to { opacity:1; } }
+
+  /* floating bubbles (stage 1) */
+  .bubble { position:absolute; border-radius:50%; background:rgba(255,255,255,.18); animation:float 9s infinite ease-in-out; }
+  @keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-40px); } }
+
+  /* stage 2: gentle pulsing rings */
+  .ring { position:absolute; width:60vmin; height:60vmin; border:2px solid rgba(255,255,255,.35); border-radius:50%; animation:ring 4s infinite ease-out; }
+  .ring:nth-child(2) { animation-delay:1.3s; } .ring:nth-child(3) { animation-delay:2.6s; }
+  @keyframes ring { from { transform:scale(.4); opacity:.9; } to { transform:scale(2.2); opacity:0; } }
+  #s2 h1 { position:relative; font-size:clamp(2.6rem, 14vw, 4.6rem); }
+
+  /* stage 3: rainbow */
+  @property --a { syntax:"<angle>"; inherits:false; initial-value:0deg; }
+  .sun { position:absolute; top:12%; right:10%; width:70px; height:70px; border-radius:50%; background:radial-gradient(circle,#fff7b0,#ffd23f 60%,#ffb703);
+    box-shadow:0 0 50px 18px rgba(255,210,63,.55); opacity:0; transform:scale(0); }
+  .screen.active .sun { animation:sunIn 1.2s .3s both cubic-bezier(.2,1.4,.4,1), sunPulse 3s 1.6s infinite ease-in-out; }
+  @keyframes sunIn { to { opacity:1; transform:scale(1); } }
+  @keyframes sunPulse { 50% { box-shadow:0 0 80px 30px rgba(255,210,63,.7); } }
+
+  .rainbow { position:relative; width:min(92vw, 520px); aspect-ratio:2/1; margin-top:-20px; }
+  .glow { position:absolute; inset:-6% -6% 0; border-radius:50% 50% 0 0 / 100% 100% 0 0; filter:blur(22px); opacity:0;
+    background:conic-gradient(from 270deg at 50% 100%, #ff3b30, #ff9500, #ffcc00, #34c759, #00b0ff, #5856d6, #af52de 180deg, transparent 180deg); }
+  .screen.active .glow { animation:glowIn 1s 2.2s both, breathe 4s 3.2s infinite ease-in-out; }
+  @keyframes glowIn { to { opacity:.45; } }
+  @keyframes breathe { 50% { opacity:.7; } }
+
+  .draw { position:absolute; inset:0; overflow:hidden; --a:0deg;
+    -webkit-mask-image:conic-gradient(from 270deg at 50% 100%, #000 var(--a), transparent calc(var(--a) + .5deg));
+            mask-image:conic-gradient(from 270deg at 50% 100%, #000 var(--a), transparent calc(var(--a) + .5deg)); }
+  .screen.active .draw { animation:sweep 2.2s .7s both cubic-bezier(.45,.05,.25,1); }
+  @keyframes sweep { from { --a:0deg; } to { --a:181deg; } }
+
+  .arc { position:absolute; left:50%; bottom:0; border-radius:50%; transform:translateX(-50%); clip-path:inset(0 0 50% 0); }
+  .screen.active .arc { animation:wave 2.6s 3.2s infinite ease-in-out; }
+  @keyframes wave { 0%,100% { transform:translateX(-50%) scale(1); filter:brightness(1); } 50% { transform:translateX(-50%) scale(1.018); filter:brightness(1.15); } }
+
+  .cloud { position:absolute; bottom:calc(50% - 38px); width:80px; height:36px; background:#fff; border-radius:40px;
+    box-shadow:20px -14px 0 4px #fff, -16px -8px 0 0 #fff; opacity:0; }
+  .cl { left:2%; } .cr { right:4%; }
+  .screen.active .cl { animation:cloudL 1.6s 2.4s both ease-out, drift 6s 4s infinite ease-in-out; }
+  .screen.active .cr { animation:cloudR 1.6s 2.6s both ease-out, drift 7s 4.2s infinite ease-in-out reverse; }
+  @keyframes cloudL { from { opacity:0; transform:translateX(-120px); } to { opacity:1; transform:none; } }
+  @keyframes cloudR { from { opacity:0; transform:translateX(120px) scaleX(-1); } to { opacity:1; transform:scaleX(-1); } }
+  @keyframes drift { 50% { margin-left:14px; } }
+
+  .spark { position:absolute; width:12px; height:12px; pointer-events:none; opacity:0;
+    background:#fff; clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);
+    filter:drop-shadow(0 0 6px #fff); animation:twinkle var(--d,2.4s) var(--delay,0s) infinite ease-in-out; }
+  @keyframes twinkle { 0%,100% { opacity:0; transform:scale(.2) rotate(0); } 50% { opacity:1; transform:scale(1) rotate(90deg); } }
+  .burst { position:fixed; width:10px; height:10px; border-radius:50%; pointer-events:none; z-index:20; animation:fly .9s forwards ease-out; }
+  @keyframes fly { to { transform:translate(var(--x),var(--y)) scale(.2); opacity:0; } }
+
+  #s3 h1 { font-size:clamp(2.2rem, 11vw, 3.6rem); margin-top:34px; text-shadow:none; animation:none; }
+  #s3 h1 span { display:inline-block; opacity:0; }
+  .screen.active #s3 h1 span, #s3.active h1 span { animation:letter .7s both cubic-bezier(.2,1.5,.4,1); animation-delay:calc(2.8s + var(--i) * .06s); }
+  @keyframes letter { from { opacity:0; transform:translateY(40px) scale(.3) rotate(-15deg); } to { opacity:1; transform:none; } }
+  #s3.active h1 span { background:linear-gradient(90deg,#ff3b30,#ff9500,#34c759,#00b0ff,#af52de); background-size:200% 100%;
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+  #s3 .sub { color:#24304a; }
+  #s3.active .btn { animation-delay:3.4s; }
+
+  .dots { position:fixed; top:calc(18px + env(safe-area-inset-top)); left:0; right:0; display:flex; justify-content:center; gap:8px; z-index:10; }
+  .dots i { width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.45); transition:all .5s; box-shadow:0 0 0 1px rgba(0,0,0,.08); }
+  .dots i.on { width:28px; border-radius:9px; background:#fff; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration:.01s !important; animation-delay:0s !important; transition-duration:.01s !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="dots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
+
+<section class="screen active" id="s1">
+  <span class="bubble" style="width:90px;height:90px;left:8%;top:14%"></span>
+  <span class="bubble" style="width:50px;height:50px;right:12%;top:24%;animation-delay:-3s"></span>
+  <span class="bubble" style="width:130px;height:130px;right:-30px;bottom:26%;animation-delay:-5s"></span>
+  <h1>Hello</h1>
+  <p class="sub">Tap below to begin</p>
+  <button class="btn" data-next="s2">Next</button>
+</section>
+
+<section class="screen" id="s2">
+  <span class="ring"></span><span class="ring"></span><span class="ring"></span>
+  <h1>Don't Panic</h1>
+  <p class="sub">Everything is going to be fine</p>
+  <button class="btn" data-next="s3">Next</button>
+</section>
+
+<section class="screen" id="s3">
+  <div class="sun"></div>
+  <div class="rainbow" id="rb">
+    <div class="glow"></div>
+    <div class="draw">
+      <div class="arc" style="width:100%;aspect-ratio:1;background:#ff3b30;animation-delay:3.2s"></div>
+      <div class="arc" style="width:88%;aspect-ratio:1;background:#ff9500;animation-delay:3.3s"></div>
+      <div class="arc" style="width:76%;aspect-ratio:1;background:#ffcc00;animation-delay:3.4s"></div>
+      <div class="arc" style="width:64%;aspect-ratio:1;background:#34c759;animation-delay:3.5s"></div>
+      <div class="arc" style="width:52%;aspect-ratio:1;background:#00b0ff;animation-delay:3.6s"></div>
+      <div class="arc" style="width:40%;aspect-ratio:1;background:#5856d6;animation-delay:3.7s"></div>
+      <div class="arc" style="width:28%;aspect-ratio:1;background:#af52de;animation-delay:3.8s"></div>
+      <div class="arc" style="width:16%;aspect-ratio:1;background:#d6f0ff;animation-delay:3.9s"></div>
+    </div>
+    <div class="cloud cl"></div><div class="cloud cr"></div>
+  </div>
+  <h1 id="rt" aria-label="See? Rainbow."></h1>
+  <p class="sub">Tap the rainbow</p>
+  <button class="btn" data-next="s1">Start over</button>
+</section>
+
+<script>
+  var screens = ["s1","s2","s3"];
+  var dots = document.querySelectorAll(".dots i");
+  var busy = false;
+
+  document.querySelectorAll(".btn").forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (busy) return;
+      busy = true;
+      var cur = b.closest(".screen");
+      var next = document.getElementById(b.dataset.next);
+      cur.classList.add("leaving");
+      cur.classList.remove("active");
+      void next.offsetWidth;
+      next.classList.add("active");
+      dots.forEach(function (d, i) { d.classList.toggle("on", screens[i] === b.dataset.next); });
+      setTimeout(function () { cur.classList.remove("leaving"); busy = false; }, 950);
+    });
+  });
+
+  // stage 3 extras: letter-by-letter title, sparkles, tap bursts
+  (function () {
+    var t = document.getElementById("rt");
+    "See? Rainbow.".split("").forEach(function (c, i) {
+      var sp = document.createElement("span");
+      sp.textContent = c === " " ? "\u00a0" : c;
+      sp.style.setProperty("--i", i);
+      t.appendChild(sp);
+    });
+    var s3 = document.getElementById("s3");
+    for (var i = 0; i < 16; i++) {
+      var k = document.createElement("i");
+      k.className = "spark";
+      k.style.left = (6 + Math.random() * 88) + "%";
+      k.style.top = (10 + Math.random() * 55) + "%";
+      k.style.setProperty("--d", (1.8 + Math.random() * 2) + "s");
+      k.style.setProperty("--delay", (3 + Math.random() * 3) + "s");
+      k.style.width = k.style.height = (8 + Math.random() * 12) + "px";
+      s3.appendChild(k);
+    }
+    var cols = ["#ff3b30","#ff9500","#ffcc00","#34c759","#00b0ff","#af52de"];
+    document.getElementById("rb").addEventListener("click", function (e) {
+      for (var n = 0; n < 18; n++) {
+        var b = document.createElement("span");
+        b.className = "burst";
+        var ang = Math.random() * 6.283, d = 50 + Math.random() * 90;
+        b.style.left = e.clientX + "px"; b.style.top = e.clientY + "px";
+        b.style.background = cols[n % cols.length];
+        b.style.setProperty("--x", Math.cos(ang) * d + "px");
+        b.style.setProperty("--y", Math.sin(ang) * d + "px");
+        document.body.appendChild(b);
+        setTimeout(function (el) { el.remove(); }.bind(null, b), 950);
+      }
+    });
+  })();
+</script>
+</body>
+</html>
